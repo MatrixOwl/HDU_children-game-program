@@ -8,6 +8,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 using namespace cv;
 using namespace std;
@@ -79,11 +80,15 @@ int main()
     for (i=0; i<image_count; i++){
         point_counts.push_back(board_size.width * board_size.height);
     }   
-    //开始
+    //start
     calibrateCamera(object_points, image_points_seq, image_size, cameraMatrix, distCoeffs, rvecsMat, tvecsMat, 0);
-    //完成
+    //end
 
-    double total_err = 0.0;  
+    
+//useless to this project, but i still want to keep that as a useful part when test
+
+
+    /*double total_err = 0.0;  
     double err = 0.0;          
     vector<Point2f> image_points2;  
 
@@ -123,27 +128,32 @@ int main()
         fout << i+1 << "的平移向量：" << endl;   
         fout << rvecsMat[i] << endl << endl;   
     }   
-    fout<<endl;
-
+    fout<<endl;*/
     Mat mapx = Mat(image_size, CV_32FC1);
     Mat mapy = Mat(image_size, CV_32FC1);
     Mat R = Mat::eye(3, 3, CV_32F);
-    string imageFileName;
     std::stringstream StrStm;
-    for (int i = 0 ; i != image_count ; i++)
-    {
-        initUndistortRectifyMap(cameraMatrix, distCoeffs, R, cameraMatrix, image_size, CV_32FC1, mapx, mapy);
-        Mat imageSource = imread(filenames[i]);
-        Mat newimage = imageSource.clone();
-        remap(imageSource, newimage, mapx, mapy, INTER_LINEAR);     
-        StrStm.clear();
-        imageFileName.clear();
-        StrStm << i+1;
-        StrStm >> imageFileName;
-        imageFileName += "_d.jpg";
-        imwrite(imageFileName, newimage);
-    }
     fin.close();
     fout.close();
+    //deal with vidio
+    VideoCapture cap("chi.mp4");
+    if (!cap.isOpened())
+        return;
+    int resultImg_cols, resultImg_rows;
+    while(1){
+        cap>>frame;
+        if (frame.empty())
+            bread;
+        initUndistortRectifyMap(cameraMatrix, distCoeffs, R, cameraMatrix, image_size, CV_32FC1, mapx, mapy);
+        Mat showImg = frame.clone();
+        remap(frame, showImg, mapx, mapy, INTER_LINEAR);
+        imshow("frame", frame);
+        imshow("result", showImg);
+        if (27 == waitKey(1))
+            break;
+    }
+    destroyAllWindows();
+
+    waitKey(0);
     return 0;
 }
