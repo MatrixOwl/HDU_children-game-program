@@ -21,7 +21,7 @@ int main()
 
     int image_count = 0;  
     Size image_size;  
-    Size board_size = Size(9, 6);            
+    Size board_size = Size(6, 4);  //change in here          
     vector<Point2f> image_points_buf;        
     vector<vector<Point2f>> image_points_seq; 
     string filename; 
@@ -30,14 +30,14 @@ int main()
     while (getline(fin, filename))
     {
         ++image_count;
-        Mat imageInput = imread(filename);
+		Mat imageInput = imread("1.bmp", 1);
         filenames.push_back(filename);
         if(image_count == 1){
             image_size.width = imageInput.cols;
             image_size.height = imageInput.rows;
         }
-        if (0 == findChessboardCorners(imageInput, board_size, image_points_buf)){           
-            cout << "can not find chessboard corners!\n";  // 找不到角点
+        if (findChessboardCorners(imageInput, board_size, image_points_buf) == 0){           
+            cout << "can not find chessboard corners!\n";  
             exit(1);
         } 
         else {
@@ -52,8 +52,8 @@ int main()
     }
     int CornerNum = board_size.width * board_size.height;
 
-    //以下是摄像机标定
-    Size square_size = Size(10, 10);         // 实测标定板棋盘格大小
+    //deal camare in time
+    Size square_size = Size(10, 10);  
     vector<vector<Point3f>> object_points;
     Mat cameraMatrix = Mat(3, 3, CV_32FC1, Scalar::all(0)); 
     vector<int> point_counts;  
@@ -84,51 +84,6 @@ int main()
     calibrateCamera(object_points, image_points_seq, image_size, cameraMatrix, distCoeffs, rvecsMat, tvecsMat, 0);
     //end
 
-    
-//useless to this project, but i still want to keep that as a useful part when test
-
-
-    /*double total_err = 0.0;  
-    double err = 0.0;          
-    vector<Point2f> image_points2;  
-
-    for (i=0;i<image_count;i++)
-    {
-        vector<Point3f> tempPointSet = object_points[i];
-        projectPoints(tempPointSet, rvecsMat[i], tvecsMat[i], cameraMatrix, distCoeffs, image_points2);
-        //计算误差
-        vector<Point2f> tempImagePoint = image_points_seq[i];
-        Mat tempImagePointMat = Mat(1, tempImagePoint.size(), CV_32FC2);
-        Mat image_points2Mat = Mat(1, image_points2.size(), CV_32FC2);
-
-        for (int j = 0 ; j < tempImagePoint.size(); j++){
-            image_points2Mat.at<Vec2f>(0,j) = Vec2f(image_points2[j].x, image_points2[j].y);
-            tempImagePointMat.at<Vec2f>(0,j) = Vec2f(tempImagePoint[j].x, tempImagePoint[j].y);
-        }
-        err = norm(image_points2Mat, tempImagePointMat, NORM_L2);
-        total_err += err/= point_counts[i]; 
-        fout << "误差：" << endl;   
-        fout << i+1 << err<< endl;   
-    }      
-    fout << "total：" << total_err/image_count<<endl;   
-
-    //保存定标结果 
-    Mat rotation_matrix = Mat(3,3,CV_32FC1, Scalar::all(0)); 
-    fout << "内参矩阵：" << endl;   
-    fout << cameraMatrix << endl << endl;   
-    fout << "畸变系数：\n";   
-    fout << distCoeffs << endl << endl << endl;   
-    for (int i=0; i<image_count; i++) 
-    { 
-        fout << i+1 << "的旋转向量：" << endl;   
-        fout << tvecsMat[i] << endl; 
-        Rodrigues(tvecsMat[i], rotation_matrix);   
-        fout << i+1 << "的旋转矩阵：" << endl;   
-        fout << rotation_matrix << endl;   
-        fout << i+1 << "的平移向量：" << endl;   
-        fout << rvecsMat[i] << endl << endl;   
-    }   
-    fout<<endl;*/
     Mat mapx = Mat(image_size, CV_32FC1);
     Mat mapy = Mat(image_size, CV_32FC1);
     Mat R = Mat::eye(3, 3, CV_32F);
@@ -138,19 +93,28 @@ int main()
     //deal with vidio
     VideoCapture cap("chi.mp4");
     if (!cap.isOpened())
-        return;
+        return 0;
     int resultImg_cols, resultImg_rows;
+	Mat frame;
+	VideoWriter video("dis.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));//can change
     while(1){
         cap>>frame;
         if (frame.empty())
-            bread;
-        initUndistortRectifyMap(cameraMatrix, distCoeffs, R, cameraMatrix, image_size, CV_32FC1, mapx, mapy);
+            break;
+		//one way
+        /*initUndistortRectifyMap(cameraMatrix, distCoeffs, R, cameraMatrix, image_size, CV_32FC1, mapx, mapy);
         Mat showImg = frame.clone();
-        remap(frame, showImg, mapx, mapy, INTER_LINEAR);
-        imshow("frame", frame);
+        remap(frame, showImg, mapx, mapy, INTER_LINEAR);*/
+
+		//another way
+		Mat showImg = frame.clone();
+		undistort(frame, showImg, cameraMatrix, distCoeffs);
+		resize(frame, frame, Size(640, 480)); //can change
+		video << frame;
+        /*imshow("frame", frame);
         imshow("result", showImg);
         if (27 == waitKey(1))
-            break;
+            break;*/
     }
     destroyAllWindows();
 
